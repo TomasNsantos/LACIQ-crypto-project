@@ -1,0 +1,77 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage[backend=biber,style=alphabetic]{biblatex}
+\addbibresource{ref.bib}
+
+\begin{document}
+
+\title{Proposta de Projeto}
+\author{}
+\date{}
+\maketitle
+
+\section*{Introdução}
+
+O projeto é composto por duas partes: uma de computação clássica e outra de computação quântica. 
+\begin{itemize}
+    \item Na primeira parte, você terá como ponto de partida um código-base de uma sala de chat com criptografia autenticada simétrica. Seu objetivo será implementar um protocolo com criptografia assimétrica para a troca de chaves.
+    \item Na segunda parte, seu objetivo será complementar um algoritmo de ataque à criptografia usada na troca de chaves.
+\end{itemize}
+
+\section{Parte Clássica: Troca de Chaves}
+
+\begin{enumerate}
+    \item Implemente o protocolo descrito abaixo para estabelecer uma chave compartilhada entre todos os integrantes do chat. 
+    \item Explique como esse protocolo impede que alguém, ao interceptar os pacotes trocados, consiga obter a chave compartilhada.
+\end{enumerate}
+\subsection*{Protocolo}
+Considere um conjunto de \( N \) pessoas: \( P_0, P_1, \dots, P_{N-1} \) e um servidor \( S \). Considere também uma cifra \( E, D \) de chave privada.
+
+\begin{enumerate}
+    \item O servidor $S$ escolhe um gerador \( g \) em um grupo com \( p \) elementos.
+
+    \item Cada \( P_i \), para \( i = 0, 1, \dots, N-1 \):
+    \begin{itemize}
+        \item Escolhe um valor secreto \( a_i \);
+        \item Calcula \( A_i = g^{a_i} \) e envia \( A_i \) para o servidor \( S \).
+    \end{itemize}
+
+    \item O servidor \( S \):
+    \begin{itemize}
+        \item Escolhe um valor secreto \( s \);
+        \item Escolhe uma mensagem \( m \) e obtém o cifrotexto \( c = E(g^s, m) \);
+        \item Para cada \( i = 0, 1, \dots, N-1 \), calcula \( A_i^{s} \) e envia este valor para \( P_i \), juntamente com \( c \).
+    \end{itemize}
+
+    \item Cada \( P_i \) (\( i = 0, 1, \dots, N-1 \)) realiza os seguintes passos:
+    \begin{itemize}
+        \item Recebe \( A_i^{s} \) do servidor \( S \);
+        \item Calcula \( \left(A_i^{s}\right)^{a_i^{-1}} = g^{s} \). \text{Para este passo, é recomendável que \( a_i \) seja um número primo.}
+        \item Calcula \( m'_i = D(g^s, c) \) e envia \( m'_i \) para \( S \).
+    \end{itemize}
+
+    \item O servidor \( S \) compara \( m'_i \) com \( m \), para cada \( i = 0, 1, \dots, N-1 \), e retorna "ok" para as pessoas que tiveram \( m'_i = m \) e "not ok" para aquelas cujo resultado foi diferente. 
+
+    \item Cada \( P_i \), para \( i = 0, 1, \dots, N-1 \), analisa a resposta de \( S \):
+    \begin{itemize}
+        \item Se recebeu "ok", o protocolo é finalizado.
+        \item Caso contrário, retorna ao passo 2.
+    \end{itemize}
+\end{enumerate}
+
+O valor \( g^{s} \) é então a chave coletiva compartilhada entre todos os participantes.
+
+\cite{boneh2020graduate}
+
+\section{Parte Quântica: Ataque à Criptografia}
+\begin{itemize}
+    \item Implementar um algoritmo que encontre o período de uma exponenciação modular, utilizando as bibliotecas de sua preferência (Qiskit, Pennylane, etc.).
+    \item Explicar como um atacante com um computador quântico (com um número suficiente de qubits confiáveis) poderia descobrir a chave compartilhada utilizando um algoritmo que determina o período de uma função.
+\end{itemize}
+
+\cite{website_example}
+\printbibliography
+
+\end{document}
