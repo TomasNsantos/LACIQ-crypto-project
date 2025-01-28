@@ -46,12 +46,34 @@ def create_keys(g, p, prime_key= False) :
     # INSERT THE REST OF THE CODE HERE
     # must return the private key a and the public key A
     # if prime_key == True, a must be prime.
+    a = create_private_key(g, p, prime_key)
+    A = pow(g, a, p) # A = g^a mod p , conforme a formula do protocolo de Diffie-Hellman
+    return a, A
+
 
 def exchange_keys_server(client_socket, p, g, s, enc_msg, conf_msg):
     # Send p and g to client
     send_json(client_socket, {"p": p, "g": g})
 
     # INSERT THE REST OF THE CODE HERE
+    # Receive client's public key
+    client_data = recv_json(client_socket)
+    B = client_data['B']
+
+    # Calculate shared key
+    S = pow(B, s, p) # S = B^s mod p , conforme a formula do protocolo de Diffie-Hellman
+    
+    # Calculate key
+    key = get_key(S)
+    # Decrypt message
+    msg = decrypt_message(enc_msg, key)
+    # Send confirmation message
+    send_json(client_socket, {"msg": conf_msg})
+
+    return key, msg
+
+
+
 
 
 def exchange_keys_client(server_socket):
