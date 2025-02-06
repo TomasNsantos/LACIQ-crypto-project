@@ -55,57 +55,91 @@ def exchange_keys_server(client_socket, p, g, s, enc_msg, conf_msg):
     send_json(client_socket, {"p": p, "g": g})
 
     # INSERT THE REST OF THE CODE HERE
+
     # Receive client's public key
     client_data = recv_json(client_socket)
-    B = client_data['B']
+    A = client_data['client_public_key']
+    print(f"Servidor recebeu A (chave pública do cliente): {A}")
 
-    # Calculate shared key
-    S = pow(g, s, p) # S = g^s mod p , conforme a formula do protocolo de Diffie-Hellman
-    #g elevado a S, nao B elevado a s
+    # Calculate shared key from server
+    B = pow(g, s, p) # S = g^s mod p , conforme a formula do protocolo de Diffie-Hellman
+    print(f"Servidor calculou B (chave pública do servidor): {B}")
+    
+    #g elevado a S, nao B elevado a s #IMPORTANTE
     # Calculate key
-    key = get_key(S)
+    #key = get_key(S)
+
+    # Enviar B e enc_msg para o cliente
+    send_json(client_socket, {"server_public_key": B, "encrypted_message": enc_msg})
+
+    # Calcular a chave compartilhada (S = A^s mod p)
+    shared_key = pow(A, s, p)
+
+    # Derivar a chave com get_key
+    fernet_key = get_key(shared_key)
+
+    print(f"Servidor calculou chave compartilhada (S): {shared_key}")
+    print(f"Servidor derivou chave Fernet: {fernet_key}")
+    print(f"Servidor enviou mensagem cifrada: {enc_msg}")
 
     # Decrypt message
     #msg = decrypt_message(enc_msg, key) NAO USA ISSO NO SERVER
-    #server nao usa decrypt
+    #server nao usa decrypt!!1!!
     # Send confirmation message
-    send_json(client_socket, {"msg": conf_msg})
-
-    return key, msg
-
+    send_json(client_socket, {"confirmation_message": conf_msg})
+    #msg = key
+    
+    return shared_key
 
 
 
 
 def exchange_keys_client(server_socket):
     """Client side key exchange implementation."""
+    
     # Receive p, g, and server's public key from server
     server_data = recv_json(server_socket)
     p = server_data['p']
     g = server_data['g']
+    print(f"Cliente recebeu p: {p}, g: {g}")
 
     # INSERT THE REST OF THE CODE HERE
-    # Generate private and public keys
-    a, A = create_keys(g, p, prime_key=True)
-    # Send public key to server
-    send_json(server_socket, {"B": A})
 
-    # Receive server's public key
+    # Generate CLIENT private and public keys (a, A)
+    a, A = create_keys(g, p, prime_key=True)
+    print(f"Cliente gerou a (privada): {a}, A (pública): {A}")
+
+    # Send A (CLIENT public key) to server
+    send_json(server_socket, {"client_public_key": A})
+
+    # Receive  B (SERVER's public key) and enc_msg from server
     server_data = recv_json(server_socket)
-    B = server_data['B']
+    B = server_data['server_public_key']
+    enc_msg = server_data['encrypted_message']
+    print(f"Cliente recebeu B (chave pública do servidor): {B}")
 
     # Calculate shared key
-    S = pow(B, a, p)  # S = B^a mod p
+    shared_key = pow(B, a, p)  # Shared_key = B^a mod p
 
-    # Calculate key
-    key = get_key(S)
+    # Calculate key with get_key
+    fernet_key = get_key(shared_key)
 
-    # Receive and decrypt message
-    enc_msg = server_data['enc_msg']
-    msg = decrypt_message(enc_msg, key)
+    
+    print(f"Cliente calculou chave compartilhada (S): {shared_key}")
+    print(f"Cliente derivou chave Fernet: {fernet_key}")
+    print(f"Cliente recebeu mensagem cifrada: {enc_msg}")
+
+    # Decrypt message   DECRIPTACAO
+    #message = decrypt_message(enc_msg, key)
+    # Decifrar a mensagem com a chave derivada
+    try:
+        message = decrypt_message(enc_msg, fernet_key)
+        print(f"Cliente decifrou mensagem: {message}")
+    except Exception as e:
+        print(f"Erro ao decifrar mensagem: {e}")
+        raise
 
     # Receive confirmation message
-    server_data = recv_json(server_socket)
-    conf_msg = server_data['msg']
+    confirmation = server_data['confirmation_message']
 
-    return a, p, g, conf_msg
+    return shared_key, message, confirmation
